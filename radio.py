@@ -9,7 +9,7 @@ from flask_sockets import Sockets
 
 
 REDIS_URL = os.environ['REDISCLOUD_URL']
-REDIS_CHAN = 'notifications'
+REDIS_CHAN = 'playlists'
 
 app = Flask(__name__)
 app.debug = 'DEBUG' in os.environ

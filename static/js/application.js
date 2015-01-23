@@ -1,14 +1,18 @@
 var inbox = new ReconnectingWebSocket("ws://"+ location.host + "/receive");
 
 inbox.onmessage = function(message) {
-  var data = JSON.parse(message.data);
+    console.log(message)
+    var data = JSON.parse(message.data);
+    console.log(data)
 
-  $.each(data, function( key, val ){
-    $("#logs").append(key + ' - ' + val);
-    $("#logs").append('<br>');
-  });
+    $("#logs").append('status:' + data['status'] + '<br>');
 
-  $("#logs").append('<hr>');
+    $.each(data['data'], function( key, val ){
+        $("#logs").append(key + ' - ' + val);
+        $("#logs").append('<br>');
+    });
+
+    $("#logs").append('<hr>');
 };
 
 inbox.onclose = function(){
