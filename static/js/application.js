@@ -1,10 +1,13 @@
 var inbox = new ReconnectingWebSocket("ws://"+ location.host + "/receive");
 
 inbox.onmessage = function(message) {
-  console.log(message);
   var data = JSON.parse(message.data);
-  console.log(data);
-  $("#logs").append(data);
+
+  $.each(data, function( key, val ){
+    $("#logs").append(key + ' - ' + val);
+    $("#logs").append('<br>');
+  });
+
   $("#logs").append('<hr>');
 };
 
