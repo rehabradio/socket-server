@@ -1,4 +1,5 @@
 # stdlib imports
+import json
 import os
 
 # thrid-party imports
@@ -12,7 +13,8 @@ REDIS_URL = os.environ['REDISCLOUD_URL']
 REDIS_CHAN = 'playlists'
 
 app = Flask(__name__)
-app.debug = 'DEBUG' in os.environ
+# app.debug = 'DEBUG' in os.environ
+app.debug = True
 
 sockets = Sockets(app)
 redis = redis.from_url(REDIS_URL)
@@ -28,10 +30,14 @@ class RadioListener(object):
 
     def __iter_data(self):
         for message in self.pubsub.listen():
-            data = message.get('data')
+            app.logger.info(u'MESSAGES: {}'.format(message))
             if message['type'] == 'message':
-                app.logger.info(u'Sending message: {}'.format(data))
-                yield data
+                mdata = json.loads(message.get('data'))
+                label = '{0}:{1}'.format(message.get('channel'), mdata['status'])
+                response = {
+                    label: mdata['data']
+                }
+                yield json.dumps(response)
 
     def register(self, client):
         """Register a WebSocket connection for Redis updates."""
