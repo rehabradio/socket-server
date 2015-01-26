@@ -32,17 +32,17 @@ def playlist_thread():
         if message['type'] == 'message':
             mdata = json.loads(message.get('data'))
 
-            if (mdata['status'] == 'updated' or mdata['data'].get('track_id')):
+            if (mdata['status'] == 'updated' or mdata['data']['is_track'] == True):
                 label = 'playlist:updated'
                 socketio.emit(label, mdata['data'], namespace=namespace)
-            elif(mdata['status'] == 'created' or mdata['status'] == 'removed'):
+            elif(mdata['status'] == 'created' or mdata['status'] == 'deleted'):
                 label = 'playlists:updated'
                 socketio.emit(label, namespace=namespace)
 
 
 
 def queue_thread():
-    """Listens to the redis server, for any updates on the "playlists" channel.
+    """Listens to the redis server, for any updates on the "queues" channel.
     """
     namespace = '/updates'
     pubsub = redis.pubsub()
@@ -53,10 +53,10 @@ def queue_thread():
         if message['type'] == 'message':
             mdata = json.loads(message.get('data'))
 
-            if (mdata['status'] == 'updated' or mdata['data'].get('track_id')):
+            if (mdata['status'] == 'updated' or mdata['data']['is_track']):
                 label = 'queue:updated'
                 socketio.emit(label, mdata['data'], namespace=namespace)
-            elif(mdata['status'] == 'created' or mdata['status'] == 'removed'):
+            elif(mdata['status'] == 'created' or mdata['status'] == 'deleted'):
                 label = 'queues:updated'
                 socketio.emit(label, namespace=namespace)
 

@@ -24,6 +24,13 @@
             socket.on('playlist:updated', function (data) {
                 message('playlist:updated', 'playlist_id:' + data['playlist_id']);
             });
+            socket.on('queues:updated', function (data) {
+                message('queues:updated', '');
+            });
+
+            socket.on('queue:updated', function (data) {
+                message('queue:updated', 'queue_id:' + data['queue_id']);
+            });
 
             function message (from, msg) {
                 $('#log').append($('<p>').append($('<b>').text(from), msg));
