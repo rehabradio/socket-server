@@ -1,23 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <title>Websocket</title>
-        <link rel="stylesheet" href="/static/css/log.css">
-    </head>
-    <body>
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Flask-SocketIO Test</title>
+    <script type="text/javascript" src="//code.jquery.com/jquery-1.4.2.min.js"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        $(document).ready(function(){
+            namespace = '/updates';
+            var socket = io.connect('http://' + document.domain + ':' + location.port + namespace);
+            socket.on('connect', function() {
+                socket.emit('my event', {data: 'I\'m connected!'});
+            });
 
-        <div id="main">
-            <div id="messages">
-                <div id="lines"></div>
-            </div>
-        </div>
+            // event handler for server sent data
+            // the data is displayed in the "Received" section of the page
+            socket.on('my response', function(msg) {
+                $('#log').append('<br>Received ' + msg.data);
+            });
+            socket.on('playlists:updated', function (data) {
+                message('playlists:updated', '');
+            });
 
-        <script src="/static/js/jquery.min.js"></script>
-        <script src="http://code.jquery.com/jquery-latest.min.js"></script>
-        <script src="http://ajax.microsoft.com/ajax/jquery.templates/beta1/jquery.tmpl.min.js"></script>
-        <script src="/static/js/socketio/socket.io.min.js"></script>
-        <script src="/static/js/playlists.js"></script>
+            socket.on('playlist:updated', function (data) {
+                message('playlist:updated', 'playlist_id:' + data['playlist_id']);
+            });
 
-    </body>
+            function message (from, msg) {
+                $('#log').append($('<p>').append($('<b>').text(from), msg));
+            }
+        });
+    </script>
+</head>
+<body>
+    <h1>Flask-SocketIO Test</h1>
+    <h2>Receive:</h2>
+    <div id="log"></div>
+</body>
 </html>

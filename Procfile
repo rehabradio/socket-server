@@ -1,1 +1,1 @@
-web: gunicorn -k flask_sockets.worker radio:app
+web: gunicorn app:socketio --log-file -

@@ -1,65 +1,81 @@
-from socketio import socketio_manage
-from socketio.namespace import BaseNamespace
-from socketio.mixins import RoomsMixin, BroadcastMixin
+import os
+import json
+import redis
+
 from gevent import monkey
-
-from flask import Flask, Response, request
-
 monkey.patch_all()
 
+import time
+from threading import Thread
+from flask import Flask, render_template, session, request
+from flask.ext.socketio import SocketIO, emit
+
 app = Flask(__name__)
-app.debug = True
+app.debug = os.environ.get('DEBUG', False)
+
+REDIS_URL = os.environ.get('REDISCLOUD_URL')
+redis = redis.from_url(REDIS_URL)
+
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
+socketio = SocketIO(app)
 
 
-class ChatNamespace(BaseNamespace, RoomsMixin, BroadcastMixin):
-    nicknames = []
+def playlist_thread():
+    """Listens to the redis server, for any updates on the "playlists" channel.
+    """
+    namespace = '/updates'
+    pubsub = redis.pubsub()
+    pubsub.subscribe('playlists')
 
-    def initialize(self):
-        self.logger = app.logger
-        self.log("Socketio session started")
+    for message in pubsub.listen():
+        app.logger.info('message: {0}'.format(message))
+        if message['type'] == 'message':
+            mdata = json.loads(message.get('data'))
 
-    def log(self, message):
-        self.logger.info("[{0}] {1}".format(self.socket.sessid, message))
-
-    def on_join(self, room):
-        self.room = room
-        self.join(room)
-        return True
-
-    def on_nickname(self, nickname):
-        self.log('Nickname: {0}'.format(nickname))
-        self.nicknames.append(nickname)
-        self.session['nickname'] = nickname
-        self.broadcast_event('announcement', '%s has connected' % nickname)
-        self.broadcast_event('nicknames', self.nicknames)
-        return True, nickname
-
-    def recv_disconnect(self):
-        # Remove nickname from the list.
-        self.log('Disconnected')
-        nickname = self.session['nickname']
-        self.nicknames.remove(nickname)
-        self.broadcast_event('announcement', '%s has disconnected' % nickname)
-        self.broadcast_event('nicknames', self.nicknames)
-        self.disconnect(silent=True)
-        return True
-
-    def on_user_message(self, msg):
-        self.log('User message: {0}'.format(msg))
-        self.emit_to_room(self.room, 'msg_to_room',
-            self.session['nickname'], msg)
-        return True
+            if (mdata['status'] == 'updated' or mdata['data'].get('track_id')):
+                label = 'playlist:updated'
+                socketio.emit(label, mdata['data'], namespace=namespace)
+            elif(mdata['status'] == 'created' or mdata['status'] == 'removed'):
+                label = 'playlists:updated'
+                socketio.emit(label, namespace=namespace)
 
 
-@app.route('/socket.io/<path:remaining>')
-def socketio(remaining):
-    try:
-        socketio_manage(request.environ, {'/chat': ChatNamespace}, request)
-    except:
-        app.logger.error("Exception while handling socketio connection",
-                         exc_info=True)
-    return Response()
+
+def queue_thread():
+    """Listens to the redis server, for any updates on the "playlists" channel.
+    """
+    namespace = '/updates'
+    pubsub = redis.pubsub()
+    pubsub.subscribe('queues')
+
+    for message in pubsub.listen():
+        app.logger.info('message: {0}'.format(message))
+        if message['type'] == 'message':
+            mdata = json.loads(message.get('data'))
+
+            if (mdata['status'] == 'updated' or mdata['data'].get('track_id')):
+                label = 'queue:updated'
+                socketio.emit(label, mdata['data'], namespace=namespace)
+            elif(mdata['status'] == 'created' or mdata['status'] == 'removed'):
+                label = 'queues:updated'
+                socketio.emit(label, namespace=namespace)
+
+
+@app.route('/')
+def index():
+    """Endpoint for the playlist and queue updates.
+    """
+    pthread = Thread(target=playlist_thread)
+    pthread.start()
+    qthread = Thread(target=queue_thread)
+    qthread.start()
+    return render_template('index.html')
+
+
+@socketio.on('connect', namespace='/updates')
+def connect():
+    emit('my response', {'data': 'Connected', 'count': 0})
 
 
 if __name__ == '__main__':
-    app.run()
+    socketio.run(app)
