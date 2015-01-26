@@ -1,0 +1,27 @@
+# MAC
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Eclipse project files
+/.cache
+.project
+/.settings
+.buildpath
+
+*.*~
+*.log*
+!empty
+.*.sw[a-z]
+*.mwb.bak
+Thumbs.db
+
+*.pyc
+*.env
+
+/databases/*
+/staticfiles/*
+/htmlcov/*
+.coverage
+coverage.xml
