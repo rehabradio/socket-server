@@ -11,6 +11,7 @@ from flask import jsonify
 from flask import session
 from flask import request
 from flask import render_template
+from flask.ext.cors import CORS
 from flask.ext.socketio import SocketIO, emit
 from threading import Thread
 
@@ -23,6 +24,8 @@ monkey.patch_all()
 app = Flask(__name__)
 app.debug = os.environ.get('DEBUG', False)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
+
+cors = CORS(app)
 
 REDIS_URL = os.environ.get('REDISCLOUD_URL')
 redis = redis.from_url(REDIS_URL)
