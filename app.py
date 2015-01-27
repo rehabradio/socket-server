@@ -1,23 +1,67 @@
-import os
+# stdlib imports
 import json
+import os
+
+# thrid-party imports
 import redis
+import requests
+
+from flask import Flask
+from flask import session
+from flask.ext.login import LoginManager
+from flask.ext.socketio import SocketIO, emit
+from threading import Thread
 
 from gevent import monkey
-monkey.patch_all()
 
-import time
-from threading import Thread
-from flask import Flask, render_template, session, request
-from flask.ext.socketio import SocketIO, emit
+
+monkey.patch_all()
+login_manager = LoginManager()
+
 
 app = Flask(__name__)
 app.debug = os.environ.get('DEBUG', False)
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
+
+login_manager.init_app(app)
 
 REDIS_URL = os.environ.get('REDISCLOUD_URL')
 redis = redis.from_url(REDIS_URL)
 
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
 socketio = SocketIO(app)
+
+
+@login_manager.request_loader
+def load_user_from_request(request):
+    """Log a user in, using a valid google oauth token, with valid associated email.
+    """
+    # Retrieve the access token from the request header
+    access_token = request.headers.get('X-Google-Auth-Token')
+
+    if access_token:
+        # Validated the token and pull down the user details
+        params = {'alt': 'json', 'access_token': access_token}
+        r = requests.get(
+            'https://www.googleapis.com/oauth2/v1/userinfo',
+            params=params
+        )
+        person = r.json()
+
+        # Ensure a valid json object is returned
+        if person.get('error') or person['verified_email'] is False:
+            return None
+
+        # Retrieve the whitelisted domains set in the .env file
+        white_listed_domains = os.environ.get('GOOGLE_WHITE_LISTED_DOMAINS', '').split(',')
+
+        # Ensure the users domain exists within the whilelist
+        if (person.get('hd') and person.get('hd') not in white_listed_domains):
+            return None
+
+        session['user'] = person
+
+        return person
+    return None
 
 
 def playlist_thread():
@@ -40,7 +84,6 @@ def playlist_thread():
                 socketio.emit(label, namespace=namespace)
 
 
-
 def queue_thread():
     """Listens to the redis server, for any updates on the "queues" channel.
     """
@@ -61,20 +104,21 @@ def queue_thread():
                 socketio.emit(label, namespace=namespace)
 
 
-@app.route('/')
-def index():
-    """Endpoint for the playlist and queue updates.
-    """
-    pthread = Thread(target=playlist_thread)
-    pthread.start()
-    qthread = Thread(target=queue_thread)
-    qthread.start()
-    return render_template('index.html')
-
-
 @socketio.on('connect', namespace='/updates')
 def connect():
-    emit('my response', {'data': 'Connected', 'count': 0})
+    """Starts reporting the threads.
+    """
+    if session.get('user'):
+        emit(
+            'my response',
+            {'data': '{0} has joined'.format(session['user']['name'])}
+        )
+        pthread = Thread(target=playlist_thread)
+        pthread.start()
+        qthread = Thread(target=queue_thread)
+        qthread.start()
+    else:
+        emit('error', {'code': '403'})
 
 
 if __name__ == '__main__':
