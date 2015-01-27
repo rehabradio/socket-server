@@ -7,6 +7,7 @@ import redis
 import requests
 
 from flask import Flask
+from flask import render_template
 from flask import session
 from flask.ext.login import LoginManager
 from flask.ext.socketio import SocketIO, emit
@@ -102,6 +103,13 @@ def queue_thread():
             elif(mdata['status'] == 'created' or mdata['status'] == 'deleted'):
                 label = 'queues:updated'
                 socketio.emit(label, namespace=namespace)
+
+
+@app.route('/')
+def index():
+    """Endpoint for the playlist and queue updates.
+    """
+    return render_template('index.html')
 
 
 @socketio.on('connect', namespace='/updates')
