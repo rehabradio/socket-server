@@ -25,7 +25,7 @@ app = Flask(__name__)
 app.debug = os.environ.get('DEBUG', False)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
 
-cors = CORS(app, resources={r"/*": {"origins": "*"}})
+CORS(app, resources=r'/*', allow_headers='Content-Type', origins="*")
 
 REDIS_URL = os.environ.get('REDISCLOUD_URL')
 redis = redis.from_url(REDIS_URL)
