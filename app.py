@@ -12,6 +12,7 @@ from flask import session
 from flask import request
 from flask.ext import login
 from flask.ext.login import current_user
+from flask.ext.login import login_user
 from flask.ext.cors import CORS
 from flask.ext.socketio import SocketIO, emit
 from threading import Thread
@@ -123,15 +124,9 @@ def login():
 
         session['user'] = person
         data = {'code': 200, 'message': session['user']}
-        load_user()
+        login_user(session['user'])
 
     return jsonify(data)
-
-
-# Create user loader function
-@login_manager.user_loader
-def load_user():
-    return session['user']
 
 
 @socketio.on('connect', namespace='/updates')
