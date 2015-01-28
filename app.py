@@ -131,8 +131,8 @@ def login():
 def connect():
     """Starts reporting the threads.
     """
-    Thread(target=playlist_thread, args=(1,)).start()
-    Thread(target=queue_thread, args=(1,)).start()
+    Thread(target=playlist_thread).start()
+    Thread(target=queue_thread).start()
 
     app.logger.info('session: {0}'.format(session))
     if session.get('user'):
