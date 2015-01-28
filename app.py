@@ -11,7 +11,7 @@ from flask import jsonify
 from flask import session
 from flask import request
 from flask import render_template
-from flask.ext.cors import CORS
+from flask.ext.cors import CORS, cross_origin
 from flask.ext.socketio import SocketIO, emit
 from threading import Thread
 
@@ -25,7 +25,8 @@ app = Flask(__name__)
 app.debug = os.environ.get('DEBUG', False)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
 
-CORS(app)
+cors = CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 
 REDIS_URL = os.environ.get('REDISCLOUD_URL')
 redis = redis.from_url(REDIS_URL)
@@ -80,6 +81,7 @@ def index():
     return render_template('index.html')
 
 
+@cross_origin()
 @app.route('/login')
 def login():
     """Log a user in, using a valid google oauth token, with valid associated email.
@@ -122,6 +124,7 @@ def login():
     return jsonify(data)
 
 
+@cross_origin()
 @socketio.on('connect', namespace='/updates')
 def connect():
     """Starts reporting the threads.
