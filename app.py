@@ -117,7 +117,7 @@ def login():
             return jsonify(data)
 
         session['user'] = person
-        data = {'code': 200}
+        data = {'code': 200, 'message': session['user']}
 
     return jsonify(data)
 
