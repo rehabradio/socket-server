@@ -73,13 +73,6 @@ def queue_thread():
                 socketio.emit(label, namespace=namespace)
 
 
-@app.route('/')
-def index():
-    """Endpoint for the playlist and queue updates.
-    """
-    return render_template('index.html')
-
-
 @app.route('/login')
 def login():
     """Log a user in, using a valid google oauth token, with valid associated email.
@@ -141,13 +134,11 @@ def connect():
             'my response',
             {'data': '{0} has joined'.format(session['user']['name'])}
         )
-        # pthread = Thread(target=playlist_thread)
-        # pthread.start()
-        # qthread = Thread(target=queue_thread)
-        # qthread.start()
+        # Thread(target=playlist_thread).start()
+        # Thread(target=queue_thread).start()
     else:
         app.logger.info('NOT LOGGED IN')
-        emit('error', {'code': '403'})
+        # emit('error', {'code': '403'})
 
 
 if __name__ == '__main__':
