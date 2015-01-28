@@ -10,6 +10,7 @@ from flask import Flask
 from flask import jsonify
 from flask import session
 from flask import request
+from flask import render_template
 from flask.ext import login
 from flask.ext.login import current_user
 from flask.ext.login import login_user
@@ -80,15 +81,38 @@ def queue_thread():
                 socketio.emit(label, namespace=namespace)
 
 
+class UserObj(object):
+    def __init__(self, user_obj):
+        self.id = user_obj['id']
+        self.username = user_obj['name']
+
+    def is_authenticated(self):
+        return True
+
+    def is_active(self):
+        return True
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return unicode(self.id)
+
+
+@login_manager.user_loader
+def load_user(id):
+    return UserObj(session['user'])
+
+
 @app.route('/login')
 def login():
     """Log a user in, using a valid google oauth token, with valid associated email.
     """
     app.logger.info('current_user: {0}'.format(current_user))
 
-    if session.get('user'):
-        app.logger.info('session: user already logged in')
-        return jsonify({'code': 200, 'message': session['user']})
+    # if session.get('user'):
+    #     app.logger.info('session: user already logged in')
+    #     return jsonify({'code': 200, 'message': session['user']})
 
     data = {'code': 403}
 
@@ -123,8 +147,9 @@ def login():
             return jsonify(data)
 
         session['user'] = person
+        session['user_id'] = person['id']
         data = {'code': 200, 'message': session['user']}
-        login_user(session['user'])
+        login_user(UserObj(session['user']))
 
     return jsonify(data)
 
