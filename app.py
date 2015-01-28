@@ -8,6 +8,7 @@ import requests
 
 from flask import Flask
 from flask import jsonify
+from flask import make_response
 from flask import session
 from flask import request
 from flask import render_template
@@ -16,9 +17,6 @@ from flask.ext.socketio import SocketIO, emit
 from threading import Thread
 
 from gevent import monkey
-
-# local imports
-from decorator import crossdomain
 
 
 monkey.patch_all()
@@ -84,7 +82,6 @@ def index():
 
 
 @app.route('/login')
-@crossdomain(origin='*')
 def login():
     """Log a user in, using a valid google oauth token, with valid associated email.
     """
@@ -123,11 +120,15 @@ def login():
         session['user'] = person
         data = {'code': 200}
 
-    return jsonify(data)
+    resp = make_response(jsonify(data))
+    resp.headers['Access-Control-Allow-Origin'] = '*'
+    resp.headers['Access-Control-Allow-Credentials'] = 'true'
+    resp.headers['Access-Control-Allow-Methods'] = 'OPTIONS, GET'
+    resp.headers['Access-Control-Allow-Headers'] = 'Authorization X-Google-Auth-Token'
+    return resp
 
 
 @socketio.on('connect', namespace='/updates')
-@crossdomain(origin='*')
 def connect():
     """Starts reporting the threads.
     """
