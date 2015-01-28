@@ -131,18 +131,24 @@ def login():
 def connect():
     """Starts reporting the threads.
     """
-    app.logger.info('session: {0}'.format(session))
-    # if session.get('user'):
-    #     emit(
-    #         'my response',
-    #         {'data': '{0} has joined'.format(session['user']['name'])}
-    #     )
     pthread = Thread(target=playlist_thread)
     pthread.start()
     qthread = Thread(target=queue_thread)
     qthread.start()
-    # else:
-    #     emit('error', {'code': '403'})
+    app.logger.info('session: {0}'.format(session))
+    if session.get('user'):
+        app.logger.info('LOGGED IN')
+        emit(
+            'my response',
+            {'data': '{0} has joined'.format(session['user']['name'])}
+        )
+        # pthread = Thread(target=playlist_thread)
+        # pthread.start()
+        # qthread = Thread(target=queue_thread)
+        # qthread.start()
+    else:
+        app.logger.info('NOT LOGGED IN')
+        emit('error', {'code': '403'})
 
 
 if __name__ == '__main__':
