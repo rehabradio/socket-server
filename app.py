@@ -84,6 +84,11 @@ def index():
 def login():
     """Log a user in, using a valid google oauth token, with valid associated email.
     """
+    if session.get('user'):
+        app.logger.info('session: user already logged in')
+        return jsonify({'code': 200, 'message': session['user']})
+    app.logger.info('session: {0}'.format(session))
+
     data = {'code': 403}
 
     # Retrieve the access token from the request header
@@ -126,7 +131,7 @@ def login():
 def connect():
     """Starts reporting the threads.
     """
-    # app.logger.info('session: {0}'.format(session))
+    app.logger.info('session: {0}'.format(session))
     # if session.get('user'):
     #     emit(
     #         'my response',
