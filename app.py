@@ -25,7 +25,7 @@ app = Flask(__name__)
 app.debug = os.environ.get('DEBUG', False)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
 
-CORS(app, allow_headers=['Content-Type', 'Authorization', 'X_GOOGLE_AUTH_TOKEN'])
+CORS(app, allow_headers=['Content-Type', 'Authorization', 'Content-Length', 'X-Requested-With', 'X_GOOGLE_AUTH_TOKEN'])
 
 REDIS_URL = os.environ.get('REDISCLOUD_URL')
 redis = redis.from_url(REDIS_URL)
@@ -126,6 +126,7 @@ def login():
 def connect():
     """Starts reporting the threads.
     """
+    app.logger.info('session: {0}'.format(session))
     if session.get('user'):
         emit(
             'my response',

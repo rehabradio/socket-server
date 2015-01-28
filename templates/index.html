@@ -14,6 +14,9 @@
             socket.on('my response', function(msg) {
                 $('#log').append('<br>Received ' + msg.data);
             });
+            socket.on('error', function(msg) {
+                $('#log').append('<br>Error ' + msg.code);
+            });
             socket.on('playlists:updated', function (data) {
                 message('playlists:updated', '');
             });
@@ -34,7 +37,7 @@
             }
             $.ajax({
                 url: 'http://' + document.domain + ':' + location.port + '/login',
-                beforeSend: function(xhr){xhr.setRequestHeader('X_GOOGLE_AUTH_TOKEN', 'ya29.CAENtyCdl5cgV77HcWLav0muY6jxTtfxpO8_faWpkeZMyClDSZg1x2hEGC-R1zi_tiEkBFyIMeaVQg');},
+                beforeSend: function(xhr){xhr.setRequestHeader('X_GOOGLE_AUTH_TOKEN', 'ya29.CQGTNLr2-96YFVAnZLW3qHhKISppq0TXjVp_5J_ZtYZgjBTGle80L3Ymj3IusVKIZXMG8-SYsDsIzg');},
                 type: "GET",
             });
         });
