@@ -8,7 +8,6 @@ import requests
 
 from flask import Flask
 from flask import jsonify
-from flask import make_response
 from flask import session
 from flask import request
 from flask import render_template
@@ -26,7 +25,7 @@ app = Flask(__name__)
 app.debug = os.environ.get('DEBUG', False)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
 
-CORS(app, resources=r'/*', allow_headers='Content-Type')
+CORS(app, allow_headers=['Content-Type', 'Authorization', 'X-Google-Auth-Token'])
 
 REDIS_URL = os.environ.get('REDISCLOUD_URL')
 redis = redis.from_url(REDIS_URL)
@@ -120,12 +119,7 @@ def login():
         session['user'] = person
         data = {'code': 200}
 
-    resp = make_response(jsonify(data))
-    resp.headers['Access-Control-Allow-Origin'] = '*'
-    resp.headers['Access-Control-Allow-Credentials'] = 'true'
-    resp.headers['Access-Control-Allow-Methods'] = 'OPTIONS, GET'
-    resp.headers['Access-Control-Allow-Headers'] = 'Authorization X-Google-Auth-Token'
-    return resp
+    return jsonify(data)
 
 
 @socketio.on('connect', namespace='/updates')
