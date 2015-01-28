@@ -10,7 +10,8 @@ from flask import Flask
 from flask import jsonify
 from flask import session
 from flask import request
-from flask import render_template
+from flask.ext import login
+from flask.ext.login import current_user
 from flask.ext.cors import CORS
 from flask.ext.socketio import SocketIO, emit
 from threading import Thread
@@ -24,6 +25,11 @@ monkey.patch_all()
 app = Flask(__name__)
 app.debug = os.environ.get('DEBUG', False)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
+
+
+login_manager = login.LoginManager()
+login_manager.init_app(app)
+
 
 CORS(app, allow_headers=['Content-Type', 'Authorization', 'Content-Length', 'X-Requested-With', 'X_GOOGLE_AUTH_TOKEN'])
 
@@ -77,10 +83,11 @@ def queue_thread():
 def login():
     """Log a user in, using a valid google oauth token, with valid associated email.
     """
+    app.logger.info('current_user: {0}'.format(current_user))
+
     if session.get('user'):
         app.logger.info('session: user already logged in')
         return jsonify({'code': 200, 'message': session['user']})
-    app.logger.info('session: {0}'.format(session))
 
     data = {'code': 403}
 
@@ -116,8 +123,15 @@ def login():
 
         session['user'] = person
         data = {'code': 200, 'message': session['user']}
+        load_user()
 
     return jsonify(data)
+
+
+# Create user loader function
+@login_manager.user_loader
+def load_user():
+    return session['user']
 
 
 @socketio.on('connect', namespace='/updates')
