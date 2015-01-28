@@ -131,10 +131,9 @@ def login():
 def connect():
     """Starts reporting the threads.
     """
-    pthread = Thread(target=playlist_thread)
-    pthread.start()
-    qthread = Thread(target=queue_thread)
-    qthread.start()
+    Thread(target=playlist_thread, args=(1,)).start()
+    Thread(target=queue_thread, args=(1,)).start()
+
     app.logger.info('session: {0}'.format(session))
     if session.get('user'):
         app.logger.info('LOGGED IN')
