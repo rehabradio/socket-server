@@ -83,7 +83,9 @@ def thread_handler(channel):
 def login():
     """Log a user in, using a valid google oauth token, with valid associated email.
     """
+    app.logger.info('session: {0}'.format(session))
     if session.get('user'):
+        app.logger.info('User session found')
         return jsonify({'code': 200, 'message': session['user']})
 
     data = {'code': 403}
@@ -120,6 +122,7 @@ def login():
 
         session['user'] = person
         data = {'code': 200, 'message': session['user']}
+        app.logger.info('person: {0}'.format(person))
 
     return jsonify(data)
 
