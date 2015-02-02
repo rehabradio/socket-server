@@ -27,6 +27,10 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'secret!')
 
 CORS(
     app,
+    origins=[
+        'http://localhost',
+        'http://rehabradio.herokuapp.com',
+    ],
     allow_headers=[
         'Content-Type',
         'Authorization',
