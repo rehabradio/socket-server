@@ -33,29 +33,25 @@ socketio = SocketIO(app)
 def playlist_thread():
     """Listens to the redis server, for any updates on the "playlists" channel.
     """
-    namespace = '/updates'
-    pubsub = redis.pubsub()
-    pubsub.subscribe('playlists')
-
-    for message in pubsub.listen():
-        app.logger.info('message: {0}'.format(message))
-        if message['type'] == 'message':
-            mdata = json.loads(message.get('data'))
-
-            if (mdata['status'] == 'updated' or mdata['data']['is_track'] == True):
-                label = 'playlist:updated'
-                socketio.emit(label, mdata['data'], namespace=namespace)
-            elif(mdata['status'] == 'created' or mdata['status'] == 'deleted'):
-                label = 'playlists:updated'
-                socketio.emit(label, namespace=namespace)
+    thread_handler('playlist')
 
 
 def queue_thread():
     """Listens to the redis server, for any updates on the "queues" channel.
     """
+    thread_handler('queue')
+
+
+def queue_head_thread():
+    """Listens to the redis server, for any updates on the "queue-heads" channel.
+    """
+    thread_handler('queue-head')
+
+
+def thread_handler(channel):
     namespace = '/updates'
     pubsub = redis.pubsub()
-    pubsub.subscribe('queues')
+    pubsub.subscribe('{0}s'.format(channel))
 
     for message in pubsub.listen():
         app.logger.info('message: {0}'.format(message))
@@ -63,10 +59,10 @@ def queue_thread():
             mdata = json.loads(message.get('data'))
 
             if (mdata['status'] == 'updated' or mdata['data']['is_track']):
-                label = 'queue:updated'
+                label = '{0}:updated'.format(channel)
                 socketio.emit(label, mdata['data'], namespace=namespace)
             elif(mdata['status'] == 'created' or mdata['status'] == 'deleted'):
-                label = 'queues:updated'
+                label = '{0}s:updated'.format(channel)
                 socketio.emit(label, namespace=namespace)
 
 
@@ -77,6 +73,7 @@ def connect():
     emit('connected', {'data': 'Connected'})
     Thread(target=playlist_thread).start()
     Thread(target=queue_thread).start()
+    Thread(target=queue_head_thread).start()
 
 
 if __name__ == '__main__':
