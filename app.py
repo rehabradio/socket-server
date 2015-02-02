@@ -135,17 +135,14 @@ def login():
 def connect():
     """Starts reporting the threads.
     """
-    Thread(target=playlist_thread).start()
-    Thread(target=queue_thread).start()
-    Thread(target=queue_head_thread).start()
     if session.get('user'):
         emit(
             'connected',
             {'data': '{0} has joined'.format(session['user']['name'])}
         )
-        # Thread(target=playlist_thread).start()
-        # Thread(target=queue_thread).start()
-        # Thread(target=queue_head_thread).start()
+        Thread(target=playlist_thread).start()
+        Thread(target=queue_thread).start()
+        Thread(target=queue_head_thread).start()
     else:
         emit('error', {'code': '403'})
 
