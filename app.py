@@ -8,8 +8,8 @@ import requests
 
 from flask import Flask
 from flask import jsonify
-from flask import session
 from flask import request
+from flask import session
 from flask.ext.cors import CORS
 from flask.ext.socketio import SocketIO, emit
 from threading import Thread
@@ -47,49 +47,35 @@ redis = redis.from_url(REDIS_URL)
 socketio = SocketIO(app)
 
 
-def playlist_thread():
-    """Listens to the redis server, for any updates on the "playlists" channel.
-    """
-    thread_handler('playlist')
+class Listener(Thread):
+    def __init__(self, r, channels):
+        Thread.__init__(self)
+        self.daemon = True
+        self.namespace = '/updates'
+        self.redis = r
+        self.pubsub = self.redis.pubsub()
+        self.pubsub.subscribe(channels)
 
+    def run(self):
+        for message in self.pubsub.listen():
+            # app.logger.info('message: {0}'.format(message))
+            if message['type'] == 'message':
+                mdata = json.loads(message.get('data'))
+                # app.logger.info('mdata: {0}'.format(mdata))
 
-def queue_thread():
-    """Listens to the redis server, for any updates on the "queues" channel.
-    """
-    thread_handler('queue')
-
-
-def queue_head_thread():
-    """Listens to the redis server, for any updates on the "queue-heads" channel.
-    """
-    thread_handler('queue-head')
-
-
-def thread_handler(channel):
-    namespace = '/updates'
-    pubsub = redis.pubsub()
-    pubsub.subscribe('{0}s'.format(channel))
-
-    for message in pubsub.listen():
-        app.logger.info('message: {0}'.format(message))
-        if message['type'] == 'message':
-            mdata = json.loads(message.get('data'))
-
-            if (mdata['status'] == 'updated' or mdata['data']['is_track']):
-                label = '{0}:updated'.format(channel)
-                socketio.emit(label, mdata['data'], namespace=namespace)
-            elif(mdata['status'] == 'created' or mdata['status'] == 'deleted'):
-                label = '{0}s:updated'.format(channel)
-                socketio.emit(label, namespace=namespace)
+                if (mdata['status'] == 'updated' or mdata['data']['is_track']):
+                    label = '{0}:updated'.format(message['channel'][:-1])
+                    socketio.emit(label, mdata['data'], namespace=self.namespace)
+                elif(mdata['status'] == 'created' or mdata['status'] == 'deleted'):
+                    label = '{0}:updated'.format(message['channel'])
+                    socketio.emit(label, namespace=self.namespace)
 
 
 @app.route('/login')
 def login():
     """Log a user in, using a valid google oauth token, with valid associated email.
     """
-    app.logger.info('session: {0}'.format(session))
     if session.get('user'):
-        app.logger.info('User session found')
         return jsonify({'code': 200, 'message': session['user']})
 
     data = {'code': 403}
@@ -136,13 +122,14 @@ def connect():
     """Starts reporting the threads.
     """
     if session.get('user'):
+        channels = ['playlists', 'queues', 'queue-heads']
         emit(
             'connected',
             {'data': '{0} has joined'.format(session['user']['name'])}
         )
-        Thread(target=playlist_thread).start()
-        Thread(target=queue_thread).start()
-        Thread(target=queue_head_thread).start()
+        client = Listener(redis, channels)
+        client.start()
+
     else:
         emit('error', {'code': '403'})
 
