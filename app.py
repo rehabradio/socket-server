@@ -56,12 +56,15 @@ class Listener(Thread):
         self.pubsub.subscribe(channels)
 
     def run(self):
+        """Emits messages recieved from the subscribe channels.
+        """
         for message in self.pubsub.listen():
-            # app.logger.info('message: {0}'.format(message))
             if message['type'] == 'message':
                 mdata = json.loads(message.get('data'))
-                # app.logger.info('mdata: {0}'.format(mdata))
 
+                # Labels are formatted to identify what has been altered on the server.
+                # plural labels (records), means that the record list has been changed.
+                # singular labels (record), means that an individual record has been changed.
                 if (mdata['status'] == 'updated' or mdata['data']['is_track']):
                     label = '{0}:updated'.format(message['channel'][:-1])
                     socketio.emit(label, mdata['data'], namespace=self.namespace)
@@ -73,11 +76,16 @@ class Listener(Thread):
 @app.route('/login')
 def login():
     """Log a user in, using a valid google oauth token, with valid associated email.
+
+    Returns json object
+
+    Formatted using jsend style
+    http://labs.omniti.com/labs/jsend
     """
     if session.get('user'):
-        return jsonify({'code': 200, 'message': session['user']})
+        return jsonify({'status': 'success', 'data': session['user']})
 
-    data = {'code': 403}
+    data = {'status': 'error', 'code': 403}
 
     # Retrieve the access token from the request header
     access_token = request.headers.get('X-Google-Auth-Token')
@@ -110,32 +118,29 @@ def login():
             return jsonify(data)
 
         session['user'] = person
-        data = {'code': 200, 'message': session['user']}
-        app.logger.info('person: {0}'.format(person))
+        data = {'status': 'success', 'data': person}
 
     return jsonify(data)
 
 
+# Channels to subscribe to on the redis server
 channels = ['playlists', 'queues', 'queue-heads']
 client = Listener(r, channels)
 
 
 @socketio.on('connect', namespace='/updates')
 def connect():
-    """Starts reporting the threads.
+    """Start the thread, if a user is logged in.
     """
     if session.get('user'):
-        emit(
-            'connected',
-            {'data': '{0} has joined'.format(session['user']['name'])}
-        )
+        emit('connected')
+
         if client.is_alive():
             client.join()
         else:
             client.start()
-
     else:
-        emit('error', {'code': '403'})
+        emit('error', {'code': 403, 'message': 'No user session found.'})
 
 
 if __name__ == '__main__':
