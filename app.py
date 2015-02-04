@@ -42,7 +42,7 @@ CORS(
 )
 
 REDIS_URL = os.environ.get('REDISCLOUD_URL')
-redis = redis.from_url(REDIS_URL)
+r = redis.from_url(REDIS_URL)
 
 socketio = SocketIO(app)
 
@@ -50,7 +50,6 @@ socketio = SocketIO(app)
 class Listener(Thread):
     def __init__(self, r, channels):
         Thread.__init__(self)
-        self.daemon = True
         self.namespace = '/updates'
         self.redis = r
         self.pubsub = self.redis.pubsub()
@@ -117,18 +116,23 @@ def login():
     return jsonify(data)
 
 
+channels = ['playlists', 'queues', 'queue-heads']
+client = Listener(r, channels)
+
+
 @socketio.on('connect', namespace='/updates')
 def connect():
     """Starts reporting the threads.
     """
     if session.get('user'):
-        channels = ['playlists', 'queues', 'queue-heads']
         emit(
             'connected',
             {'data': '{0} has joined'.format(session['user']['name'])}
         )
-        client = Listener(redis, channels)
-        client.start()
+        if client.is_alive():
+            client.join()
+        else:
+            client.start()
 
     else:
         emit('error', {'code': '403'})
